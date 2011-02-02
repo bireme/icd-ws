@@ -1,0 +1,13 @@
+{
+    "env" : {
+        "public" : {
+            "db" : "http://user:password@bvs.couchone.com/xlil"
+        },
+        "default" : {
+            "db" : "http://localhost:5984/xlil"
+        }
+    },
+    "extensions": [ 
+        "egg:couchapp#autopush" 
+    ] 
+}
