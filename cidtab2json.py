@@ -21,6 +21,7 @@ Sample record::
 
 """
 
+import sys
 import json
 
 
@@ -46,6 +47,9 @@ def toRoman(n):
 
 INFILE = '../data/cid10/CID10-matriz.txt'
 
+with open('../data/cid10/CID10-categorias-puras.txt') as cats:
+    pure_cats = set(cats.read().split())
+
 # Seq	Nível	Tipo	Tabela	Código	Código Alt	CrAst	Descrição
 
 levels = {u'Capítulo' : 'chap',
@@ -53,67 +57,72 @@ levels = {u'Capítulo' : 'chap',
           u'Categoria': 'cat',
           u'Subcategoria': 'subcat'}
 
-prev_code = prev_level = entry = None
-chap_num = 0
-entries = []
-with open(INFILE) as infile:
-    ct_lines = 0
-    for lin in infile:
-        lin = lin.decode('cp1252').strip()
-        parts = [p.rstrip() for p in lin.split('\t')]
-        seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
-        col1 = parts[8] if len(parts) >= 9 else None
-        col2 = parts[9] if len(parts) == 10 else None
-        seq = int(seq)
-        level = levels[level]
-        tag = tag.strip()
-        code = code.strip()
-        alt_code = alt_code.strip()
-        cr_st = cr_st.strip()
-        if code != prev_code:
-            # start new entry
-            assert tag == u'Título', repr(parts)
-            if entry is not None:
-                entry['_id'] = entry['code']
-                entries.append(entry)
-            if len(entries) > 1000:
-                break
-            entry = dict(code=code, lang=u'pt-br', title=descr)
-            if cr_st: entry['cr_st'] = cr_st
-            if level == 'chap':
-                chap_num += 1
-                chap = toRoman(chap_num)
-                # print chap, code, descr
-            # check nested levels: chap -> group -> cat -> subcat
-            if prev_level == 'chap':
-                assert level in ['group'], repr(parts)
-            elif prev_level == 'group':
-                assert level in ['group', 'cat'], repr(parts)
-            elif prev_level == 'cat':
-                assert level in ['cat', 'subcat', 'group'], repr(parts)
-            elif prev_level == 'subcat':
-                assert level in ['chap', 'group', 'cat', 'subcat'], repr(parts)
-        else: # same code, add to current record
-            # tags [u'Exclus\xe3o', u'Inclus\xe3o', u'Nota', u'T\xedtulo', u'CNota']
-            if descr:
-                if tag == u'Nota':
-                    entry.setdefault('notes',[]).append([descr])
-                elif tag == u'CNota':
-                    entry['notes'][-1].append(descr)
-                elif tag == u'Inclusão':
-                    entry.setdefault('inclusions',[]).append(descr)
-                elif tag == u'Exclusão':
-                    entry.setdefault('exclusions',[]).append(descr)
-                else:
-                    raise TypeError('unknown tag: %r' % parts)
+def convert(start=0, stop=sys.maxsize):
+    prev_code = prev_level = entry = None
+    chap_num = 0
+    entries = []
+    with open(INFILE) as infile:
+        ct_lines = 0
+        for lin in infile:
+            lin = lin.decode('cp1252').strip()
+            parts = [p.rstrip() for p in lin.split('\t')]
+            seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
+            col1 = parts[8] if len(parts) >= 9 else None
+            col2 = parts[9] if len(parts) == 10 else None
+            seq = int(seq)
+            level = levels[level]
+            tag = tag.strip()
+            code = code.strip().upper()
+            alt_code = alt_code.strip().upper()
+            cr_st = cr_st.strip()
+            if code != prev_code:
+                # start new entry
+                assert tag == u'Título', repr(parts)
+                if level == 'chap':
+                    chap_num += 1
+                    chap = toRoman(chap_num)
+                if entry is not None:
+                    entries.append(entry)
+                entry = dict(_id=code, code=code, lang=u'pt-br', title=descr, seq=seq, level=level, chap=chap)
+                if alt_code != code:
+                    entry['alt_code'] = alt_code
+                if cr_st:
+                    entry['cr_st'] = cr_st
+                    # print chap, code, descr
+                # check nested levels: chap -> group -> cat -> subcat
+                if prev_level == 'chap':
+                    assert level in ['group'], repr(parts)
+                elif prev_level == 'group':
+                    assert level in ['group', 'cat'], repr(parts)
+                elif prev_level == 'cat':
+                    assert level in ['cat', 'subcat', 'group'], repr(parts)
+                elif prev_level == 'subcat':
+                    assert level in ['chap', 'group', 'cat', 'subcat'], repr(parts)
+            else: # same code, add to current record
+                # tags [u'Exclus\xe3o', u'Inclus\xe3o', u'Nota', u'T\xedtulo', u'CNota']
+                if descr:
+                    if tag == u'Nota':
+                        entry.setdefault('notes',[]).append([descr])
+                    elif tag == u'CNota':
+                        entry['notes'][-1].append(descr)
+                    elif tag == u'Inclusão':
+                        entry.setdefault('inclusions',[]).append(descr)
+                    elif tag == u'Exclusão':
+                        entry.setdefault('exclusions',[]).append(descr)
+                    elif tag == u'Título':
+                        if code not in pure_cats:
+                            TypeError('unexpected repeated code: %r' % parts)
+                    else:
+                        raise TypeError('unknown tag: %r' % parts)
 
-        prev_code = code
-        prev_level = level
-        ct_lines += 1
+            prev_code = code
+            prev_level = level
+            ct_lines += 1
 
-#print 'ct_lines:', ct_lines
-print json.dumps(dict(docs=entries))
-#print json.dumps(dict(docs=[{'a':1}, {'a':2}]))
+    #print 'ct_lines:', ct_lines
+    print json.dumps(dict(docs=entries[start:stop]))
+
+convert()
 
 """
 Notes:
