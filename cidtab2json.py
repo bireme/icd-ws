@@ -64,7 +64,7 @@ def convert(start=0, stop=sys.maxsize):
     with open(INFILE) as infile:
         ct_lines = 0
         for lin in infile:
-            lin = lin.decode('cp1252').strip()
+            lin = unicode(lin.strip(), 'utf-8')
             parts = [p.rstrip() for p in lin.split('\t')]
             seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
             col1 = parts[8] if len(parts) >= 9 else None
