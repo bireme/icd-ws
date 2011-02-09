@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<decsvmx version="1.0" date="20110209 193205">
+    <cid10ws_response service="" tree_id="S05.1">
+        <tree>
+            <self>
+                <term_list lang="pt">
+                    <term tree_id="S05.1" leaf="true">Contusão do globo ocular e dos tecidos da órbita</term>
+                </term_list>
+            </self>
+            <ancestors>
+                <term_list lang="pt">
+                    <term tree_id="S00-T98" chapter="XIX">Lesões, envenenamento e algumas outras conseqüências de causas externas</term>
+                    <term tree_id="S00-S09">Traumatismos da cabeça</term>
+                    <term tree_id="S05">Traumatismo do olho e da órbita ocular</term>
+                </term_list>
+            </ancestors>
+        </tree>
+        <record_list>
+            <record lang="pt" db="cid10" mfn="8641">
+                <descriptor_list>
+                    <descriptor lang="en">Contusion of eyeball and orbital tissues
+                    </descriptor>
+                    <descriptor lang="es">Contusión del globo ocular y del tejido orbitario
+                    </descriptor>
+                    <descriptor lang="pt">Contusão do globo ocular e dos tecidos da órbita</descriptor>
+                </descriptor_list>
+                <includes_list>
+                    <includes>Hifema traumático</includes></includes_list>
+                <excludes_list>
+                    <excludes>Contusão da pálpebra e região periocular (S00.1)</excludes>
+                    <excludes>Olho roxo (S00.1)</excludes>
+                </excludes_list>
+                <tree_id_list>
+                    <tree_id>S05.1</tree_id>
+                </tree_id_list>
+            </record>
+        </record_list>
+    </cid10ws_response>
+</decsvmx>

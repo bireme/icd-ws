@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<decsvmx version="1.0" date="20110209 192551">
+    <cid10ws_response service="" tree_id="Z99.3">
+        <tree>
+            <self>
+                <term_list lang="pt">
+                    <term tree_id="Z99.3" leaf="true">Dependência de cadeira de rodas</term>
+                </term_list>
+            </self>
+            <ancestors>
+                <term_list lang="pt">
+                    <term tree_id="Z00-Z99" chapter="XXI">Fatores que influenciam o estado de saúde e o contato com os serviços de saúde</term>
+                    <term tree_id="Z80-Z99">Pessoas com riscos potenciais à saúde relacionados com história familiar e pessoal e algumas afecções que influenciam o estado de saúde</term>
+                    <term tree_id="Z99">Dependência de máquinas e dispositivos capacitantes, não classificados em outra parte</term>
+                </term_list>
+            </ancestors>
+        </tree>
+        <record_list>
+            <record lang="pt" db="cid10" mfn="14510">
+                <descriptor_list>
+                    <descriptor lang="en">Dependence on wheelchair
+                    </descriptor>
+                    <descriptor lang="es">Dependencia de silla de ruedas
+                    </descriptor>
+                    <descriptor lang="pt">Dependência de cadeira de rodas</descriptor>
+                </descriptor_list>
+                <tree_id_list>
+                    <tree_id>Z99.3</tree_id>
+                </tree_id_list>
+            </record>
+        </record_list>
+    </cid10ws_response>
+</decsvmx>
+
