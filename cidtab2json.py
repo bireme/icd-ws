@@ -46,6 +46,7 @@ def toRoman(n):
     return result
 
 INFILE = '../data/cid10/CID10-matriz.txt'
+END_CODE = 'ZZZ.Z'
 
 with open('../data/cid10/CID10-categorias-puras.txt') as cats:
     pure_cats = set(cats.read().split())
@@ -57,14 +58,27 @@ levels = {u'Capítulo' : 'chap',
           u'Categoria': 'cat',
           u'Subcategoria': 'subcat'}
 
+def make_selector():
+    flags = set()
+    def selector(entry, chap):
+        pt_text = entry['text']['pt-br']
+        return any([
+            entry['level'] == 'chap', # inicios dos capitulos
+            entry['chap'] != chap, # ultimo do capítulo
+            len(pt_text.get('notes',[])) > 3, # várias notas
+            'cr_st' in entry
+        ])
+    return selector
+
 def convert(start=0, stop=sys.maxsize):
     prev_code = prev_level = entry = None
     chap_num = 0
     entries = []
+    selector = make_selector()
     with open(INFILE) as infile:
         ct_lines = 0
         for lin in infile:
-            lin = unicode(lin.strip(), 'utf-8')
+            lin = unicode(lin.strip(), 'cp1252')
             parts = [p.rstrip() for p in lin.split('\t')]
             seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
             col1 = parts[8] if len(parts) >= 9 else None
@@ -78,12 +92,16 @@ def convert(start=0, stop=sys.maxsize):
             if code != prev_code:
                 # start new entry
                 assert tag == u'Título', repr(parts)
-                if level == 'chap':
+                if level == 'chap' or code == END_CODE:
                     chap_num += 1
                     chap = toRoman(chap_num)
                 if entry is not None:
-                    entries.append(entry)
-                entry = dict(_id=code, code=code, lang=u'pt-br', title=descr, seq=seq, level=level, chap=chap)
+                    if selector(entry, chap):
+                        entries.append(entry)
+                if code == END_CODE: break
+                entry = dict(_id=code, code=code, chap=chap, level=level, seq=seq)
+                entry['text'] = {'pt-br':dict(title=descr)}
+                pt_text = entry['text']['pt-br']
                 if alt_code != code:
                     entry['alt_code'] = alt_code
                 if cr_st:
@@ -102,13 +120,16 @@ def convert(start=0, stop=sys.maxsize):
                 # tags [u'Exclus\xe3o', u'Inclus\xe3o', u'Nota', u'T\xedtulo', u'CNota']
                 if descr:
                     if tag == u'Nota':
-                        entry.setdefault('notes',[]).append([descr])
+                        # there are no records with multiple notes
+                        pt_text.setdefault('notes',[]).append(descr)
+                        assert len(pt_text['notes']) == 1
                     elif tag == u'CNota':
-                        entry['notes'][-1].append(descr)
+                        # but a note can have multiple continuations
+                        pt_text['notes'].append(descr)
                     elif tag == u'Inclusão':
-                        entry.setdefault('inclusions',[]).append(descr)
+                        pt_text.setdefault('inclusions',[]).append(descr)
                     elif tag == u'Exclusão':
-                        entry.setdefault('exclusions',[]).append(descr)
+                        pt_text.setdefault('exclusions',[]).append(descr)
                     elif tag == u'Título':
                         if code not in pure_cats:
                             TypeError('unexpected repeated code: %r' % parts)
@@ -119,7 +140,6 @@ def convert(start=0, stop=sys.maxsize):
             prev_level = level
             ct_lines += 1
 
-    #print 'ct_lines:', ct_lines
     print json.dumps(dict(docs=entries[start:stop]))
 
 convert()
