@@ -15,8 +15,9 @@ function(head, req) {
     }
     
     while(row = getRow()){
-        rows.push({'chap':row.key,
-                   'title':row.value});
+        rows.push({'key':row.id,
+                   'title':row.value,
+                   'chap':row.key});
     }
     rows.sort();
     var view = {
