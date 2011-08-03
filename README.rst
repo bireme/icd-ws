@@ -8,7 +8,7 @@ The goal of this project is to load ICD-10 data into CouchDB to create multi-lin
 Record Structure
 -----------------
 
-Simple ''Subcategory'' type record:
+Simple ''Subcategory'' type record::
 
   {
     code: "A07.3",
@@ -20,7 +20,7 @@ Simple ''Subcategory'' type record:
   }
 
 
-''Subcategory'' type record with inclusion notes and exclusion:
+''Subcategory'' type record with inclusion notes and exclusion::
 
   { code: "A15.4",
     lang: "pt-br",
@@ -33,7 +33,7 @@ Simple ''Subcategory'' type record:
     seq: 177
   }
 
-"Pure" ''Category'' type record:
+"Pure" ''Category'' type record::
 
   { code: "T64",
     lang: "en",
@@ -47,21 +47,23 @@ Sample data
 
 For development and testing, a small subset of ICD-10 records will be selected including:
 
- * the first and last record of each chapter
- * the longest record (considering the number of attributes such as inclusions, exclusions, notes etc.)
- * all 6 records with two-column inclusion notes
- * at least one record with each of the following features:
-  * multiple notes
-  * notes with continuation (CNotes)
-  * inclusion notes with one column
-  * exclusion notes with one column
-  * a star (*) mark on the cr_ast column
-  * a cross (†) mark on the cr_ast column
-  * chapter reference within a note
-  * a code reference suffixed with a cross (†)
- * all records referenced from the records selected above
+* the first and last record of each chapter
+* the longest record (considering the number of attributes such as inclusions, exclusions, notes etc.)
+* all 6 records with two-column inclusion notes
+* at least one record with each of the following features:
+ * multiple notes
+ * notes with continuation (CNotes)
+ * inclusion notes with one column
+ * exclusion notes with one column
+ * a star (*) mark on the cr_ast column
+ * a cross (†) mark on the cr_ast column
+ * chapter reference within a note
+ * a code reference suffixed with a cross (†)
+* all records referenced from the records selected above
 
-== Curly brackets Unicode characters ==
+----------------------------------
+Curly brackets Unicode characters
+----------------------------------
 
 ICD-10 is annotated with curly brackets which can be built using the
 following Unicode characters::
