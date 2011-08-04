@@ -51,6 +51,7 @@ For development and testing, a small subset of ICD-10 records will be selected i
 * the longest record (considering the number of attributes such as inclusions, exclusions, notes etc.)
 * all 6 records with two-column inclusion notes
 * at least one record with each of the following features:
+
  * multiple notes
  * notes with continuation (CNotes)
  * inclusion notes with one column
@@ -59,6 +60,7 @@ For development and testing, a small subset of ICD-10 records will be selected i
  * a cross (†) mark on the cr_ast column
  * chapter reference within a note
  * a code reference suffixed with a cross (†)
+
 * all records referenced from the records selected above
 
 ----------------------------------
@@ -84,11 +86,12 @@ following Unicode characters::
     23B0    ⎰   UPPER LEFT OR LOWER RIGHT CURLY BRACKET SECTION
     23B1    ⎱   UPPER RIGHT OR LOWER LEFT CURLY BRACKET SECTION
 
-For example::
+Example::
 
     23A7    ⎧   LEFT CURLY BRACKET UPPER HOOK
     23AA    ⎪   CURLY BRACKET EXTENSION
     23A8    ⎨   LEFT CURLY BRACKET MIDDLE PIECE
+    23AA    ⎪   CURLY BRACKET EXTENSION
     23AA    ⎪   CURLY BRACKET EXTENSION
     23A9    ⎩   LEFT CURLY BRACKET LOWER HOOK
 
