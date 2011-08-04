@@ -23,7 +23,8 @@ Sample record::
 
 import sys
 import json
-
+import csv
+import collections
 
 # Roman numeral conversion by Mark Pilgrim
 # see: http://diveintopython.org/unit_testing/stage_5.html
@@ -45,18 +46,22 @@ def toRoman(n):
             n -= integer
     return result
 
-INFILE = '../data/cid10/CID10-matriz.txt'
+INFILE = '../data/cid10/CID10-matriz.csv'
 END_CODE = 'ZZZ.Z'
 
 with open('../data/cid10/CID10-categorias-puras.txt') as cats:
     pure_cats = set(cats.read().split())
 
-# Seq	Nível	Tipo	Tabela	Código	Código Alt	CrAst	Descrição
+# Seq   Nível   Tipo    Tabela  Código  Código Alt  CrAst   Descrição
 
-levels = {u'Capítulo' : 'chap',
-          u'Grupo': 'group',
-          u'Categoria': 'cat',
-          u'Subcategoria': 'subcat'}
+levels = {'Capítulo' : 'chap',
+          'Grupo': 'group',
+          'Categoria': 'cat',
+          'Subcategoria': 'subcat'}
+
+#       seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
+keys = 'seq level tag table code alt_code cr_st descr note1 note2'
+Entry = collections.namedtuple('Entry', keys)
 
 def make_selector():
     flags = set()
@@ -77,21 +82,19 @@ def convert(start=0, stop=sys.maxsize):
     selector = make_selector()
     with open(INFILE) as infile:
         ct_lines = 0
-        for lin in infile:
-            lin = unicode(lin.strip(), 'cp1252')
-            parts = [p.rstrip() for p in lin.split('\t')]
-            seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
-            col1 = parts[8] if len(parts) >= 9 else None
-            col2 = parts[9] if len(parts) == 10 else None
-            seq = int(seq)
-            level = levels[level]
-            tag = tag.strip()
-            code = code.strip().upper()
-            alt_code = alt_code.strip().upper()
-            cr_st = cr_st.strip()
+        for lin in csv.reader(infile):
+            row = Entry._make(lin)
+            if row.seq == 'Seq':
+                continue # skip header
+            seq = int(row.seq)
+            level = levels[row.level]
+            tag = row.tag.strip()
+            code = row.code.strip().upper()
+            alt_code = row.alt_code.strip().upper()
+            cr_st = row.cr_st.strip()
             if code != prev_code:
                 # start new entry
-                assert tag == u'Título', repr(parts)
+                assert tag == 'Título', entry
                 if level == 'chap' or code == END_CODE:
                     chap_num += 1
                     chap = toRoman(chap_num)
@@ -99,8 +102,8 @@ def convert(start=0, stop=sys.maxsize):
                     if selector(entry, chap):
                         entries.append(entry)
                 if code == END_CODE: break
-                entry = dict(_id=code, code=code, chap=chap, level=level, seq=seq)
-                entry['text'] = {'pt-br':dict(title=descr)}
+                entry = dict(_id=seq, code=code, chap=chap, level=level, seq=seq)
+                entry['text'] = {'pt-br':dict(title=row.descr)}
                 pt_text = entry['text']['pt-br']
                 if alt_code != code:
                     entry['alt_code'] = alt_code
@@ -118,23 +121,23 @@ def convert(start=0, stop=sys.maxsize):
                     assert level in ['chap', 'group', 'cat', 'subcat'], repr(parts)
             else: # same code, add to current record
                 # tags [u'Exclus\xe3o', u'Inclus\xe3o', u'Nota', u'T\xedtulo', u'CNota']
-                if descr:
-                    if tag == u'Nota':
+                if row.descr:
+                    if tag == 'Nota':
                         # there are no records with multiple notes
-                        pt_text.setdefault('notes',[]).append(descr)
+                        pt_text.setdefault('notes',[]).append(row.descr)
                         assert len(pt_text['notes']) == 1
-                    elif tag == u'CNota':
+                    elif tag == 'CNota':
                         # but a note can have multiple continuations
-                        pt_text['notes'].append(descr)
-                    elif tag == u'Inclusão':
-                        pt_text.setdefault('inclusions',[]).append(descr)
-                    elif tag == u'Exclusão':
-                        pt_text.setdefault('exclusions',[]).append(descr)
-                    elif tag == u'Título':
+                        pt_text['notes'].append(row.descr)
+                    elif tag == 'Inclusão':
+                        pt_text.setdefault('inclusions',[]).append(row.descr)
+                    elif tag == 'Exclusão':
+                        pt_text.setdefault('exclusions',[]).append(row.descr)
+                    elif tag == 'Título':
                         if code not in pure_cats:
-                            TypeError('unexpected repeated code: %r' % parts)
+                            TypeError('unexpected repeated code: %r' % (row,))
                     else:
-                        raise TypeError('unknown tag: %r' % parts)
+                        raise TypeError('unknown tag: %r' % (row,))
 
             prev_code = code
             prev_level = level
@@ -149,16 +152,16 @@ Notes:
 
 in CID10.xls, code C43 appears as:
 
-2551	Categoria	Título		C43	C43.-		Melanoma maligno da pele
-2552	Subcategoria	Inclusão		C43	C43		Os códigos de morfologia classificáveis em M872-M879 com código de comportamento /3
-2553	Subcategoria	Exclusão		C43	C43		Melanoma maligno da pele dos órgãos genitais (C51-C52, C60.-, C63.-)
+2551    Categoria   Título      C43 C43.-       Melanoma maligno da pele
+2552    Subcategoria    Inclusão        C43 C43     Os códigos de morfologia classificáveis em M872-M879 com código de comportamento /3
+2553    Subcategoria    Exclusão        C43 C43     Melanoma maligno da pele dos órgãos genitais (C51-C52, C60.-, C63.-)
 
 Here we have a Categoria followed immediately by Subcategoria (without a Title) and Inclusão, Exclusão.
 
 That segment continues:
 
-2554	Subcategoria	Título		C43.0	C43.0		Melanoma maligno do lábio
-2555	Subcategoria	Exclusão		C43.0	C43.0		Área vermelha (vermelhão) do lábio (C00.0-C00.2)
+2554    Subcategoria    Título      C43.0   C43.0       Melanoma maligno do lábio
+2555    Subcategoria    Exclusão        C43.0   C43.0       Área vermelha (vermelhão) do lábio (C00.0-C00.2)
 
 ####
 
