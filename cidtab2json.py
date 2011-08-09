@@ -21,134 +21,93 @@ Sample record::
 
 """
 
-import sys
-import json
 import csv
 import collections
-
-# Roman numeral conversion by Mark Pilgrim
-# see: http://diveintopython.org/unit_testing/stage_5.html
-
-romanNumeralMap = [('M',  1000), ('CM', 900), ('D',  500), ('CD', 400),
-                   ('C',  100),  ('XC', 90), ('L',  50), ('XL', 40),
-                   ('X',  10), ('IX', 9), ('V',  5), ('IV', 4), ('I',  1)]
-
-def toRoman(n):
-    """convert integer to Roman numeral"""
-    if not (0 < n < 4000):
-        raise ValueError("number out of range (must be 1..3999)")
-    if int(n) != n:
-        raise ValueError("non-integers can not be converted")
-    result = ""
-    for numeral, integer in romanNumeralMap:
-        while n >= integer:
-            result += numeral
-            n -= integer
-    return result
-
-INFILE = '../data/cid10/CID10-matriz.csv'
-END_CODE = 'ZZZ.Z'
+import itertools
 
 with open('../data/cid10/CID10-categorias-puras.txt') as cats:
     pure_cats = set(cats.read().split())
-
-# Seq   Nível   Tipo    Tabela  Código  Código Alt  CrAst   Descrição
 
 levels = {'Capítulo' : 'chap',
           'Grupo': 'group',
           'Categoria': 'cat',
           'Subcategoria': 'subcat'}
 
-#       seq, level, tag, table, code, alt_code, cr_st, descr = parts[:8]
-keys = 'seq level tag table code alt_code cr_st descr note1 note2'
-Entry = collections.namedtuple('Entry', keys)
+types = {'T\xc3\xadtulo' : 'title',
+         'Nota' : 'note',
+         'CNota' : 'cnote',
+         'Inclus\xc3\xa3o' : 'incl',
+         'Exclus\xc3\xa3o' : 'excl',
+         }
+          
 
-def make_selector():
-    flags = set()
-    def selector(entry, chap):
-        pt_text = entry['text']['pt-br']
-        return any([
-            entry['level'] == 'chap', # inicios dos capitulos
-            entry['chap'] != chap, # ultimo do capítulo
-            len(pt_text.get('notes',[])) > 3, # várias notas
-            'cr_st' in entry
-        ])
-    return selector
+# Seq  Nível  Tipo  Tabela  Código  Código Alt  CrAst  Descrição...
+#    seq level type table code alt_code cr_st descr col1  col2
+Row = collections.namedtuple('Row', 
+    'seq level type table code alt_code cr_st descr note1 note2')
 
-def convert(start=0, stop=sys.maxsize):
-    prev_code = prev_level = entry = None
-    chap_num = 0
-    entries = []
-    selector = make_selector()
-    with open(INFILE) as infile:
-        ct_lines = 0
-        for lin in csv.reader(infile):
-            row = Entry._make(lin)
-            if row.seq == 'Seq':
-                continue # skip header
-            seq = int(row.seq)
+class InputError(StandardError):
+    '''Malformed input file'''
+
+def get_entry_rows(infile):
+    END_CODE = 'ZZZ.Z'
+    for line_index, lin in enumerate(csv.reader(infile)):
+        row = Row._make(lin)
+        try:
             level = levels[row.level]
-            tag = row.tag.strip()
-            code = row.code.strip().upper()
-            alt_code = row.alt_code.strip().upper()
-            cr_st = row.cr_st.strip()
-            if code != prev_code:
-                # start new entry
-                assert tag == 'Título', entry
-                if level == 'chap' or code == END_CODE:
-                    chap_num += 1
-                    chap = toRoman(chap_num)
-                if entry is not None:
-                    if selector(entry, chap):
-                        entries.append(entry)
-                if code == END_CODE: break
-                entry = dict(_id=seq, code=code, chap=chap, level=level, seq=seq)
-                entry['text'] = {'pt-br':dict(title=row.descr)}
-                pt_text = entry['text']['pt-br']
-                if alt_code != code:
-                    entry['alt_code'] = alt_code
-                if cr_st:
-                    entry['cr_st'] = cr_st
-                    # print chap, code, descr
-                # check nested levels: chap -> group -> cat -> subcat
-                if prev_level == 'chap':
-                    assert level in ['group'], repr(parts)
-                elif prev_level == 'group':
-                    assert level in ['group', 'cat'], repr(parts)
-                elif prev_level == 'cat':
-                    assert level in ['cat', 'subcat', 'group'], repr(parts)
-                elif prev_level == 'subcat':
-                    assert level in ['chap', 'group', 'cat', 'subcat'], repr(parts)
-            else: # same code, add to current record
-                # tags [u'Exclus\xe3o', u'Inclus\xe3o', u'Nota', u'T\xedtulo', u'CNota']
-                if row.descr:
-                    if tag == 'Nota':
-                        # there are no records with multiple notes
-                        pt_text.setdefault('notes',[]).append(row.descr)
-                        assert len(pt_text['notes']) == 1
-                    elif tag == 'CNota':
-                        # but a note can have multiple continuations
-                        pt_text['notes'].append(row.descr)
-                    elif tag == 'Inclusão':
-                        pt_text.setdefault('inclusions',[]).append(row.descr)
-                    elif tag == 'Exclusão':
-                        pt_text.setdefault('exclusions',[]).append(row.descr)
-                    elif tag == 'Título':
-                        if code not in pure_cats:
-                            TypeError('unexpected repeated code: %r' % (row,))
-                    else:
-                        raise TypeError('unknown tag: %r' % (row,))
+        except KeyError:
+            if line_index == 0 or row.level == '':
+                # ignore header line and blank lines
+                continue
+            else:
+                raise InputError(line_index+1)
+        if row.code == END_CODE:
+            return
+        row_list = list(row)
+        level_pos = row._fields.index('level')
+        type_pos = row._fields.index('type')
+        row_list[level_pos] = level
+        row_list[type_pos] = types[row.type]
+        yield Row(*row_list)
 
-            prev_code = code
+def group_id(row):
+    return '{0}:{1}'.format(row.code, row.level)
+
+def convert(infile_name):
+    level_steps = set()
+    type_steps = set()
+    prev_level = None
+    with open(INFILE) as infile:
+        for code, record in itertools.groupby(get_entry_rows(infile), group_id):
+            rows = list(record)
+            level = rows[0].level
+            #if (prev_level, level) == ('group', 'subcat'): 
+            #print '{0:8} {1} {0}'.format (code, '-' * 70)
+            level_steps.add((prev_level, level))
             prev_level = level
-            ct_lines += 1
+            prev_type = None
+            for row in rows:
+                if prev_type == None and row.type == 'excl' and row.code not in pure_cats:
+                    print ' {0.seq:>5} {0.level:6} {0.type}'.format(row)
+                type_steps.add((prev_type, row.type))
+                prev_type = row.type
+    for i in sorted(level_steps):
+        print i
+    for i in sorted(type_steps):
+        print i
 
-    print json.dumps(dict(docs=entries[start:stop]))
+INFILE = '../data/cid10/CID10-matriz.csv'
+convert(INFILE)
 
-convert()
 
 """
 Notes:
+
+Example of a category title followed immediately by a subcategory exclusion:
+
+2280    Categoria   Título      C13 C13.-       Neoplasia maligna da hipofaringe
+2281    Subcategoria    Exclusão        C13 C13     Seio piriforme (C12)
+
 
 in CID10.xls, code C43 appears as:
 
