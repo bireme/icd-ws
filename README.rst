@@ -1,3 +1,8 @@
+.. admonition:: Abandoned!
+
+   This was a first attempt at this code, since abandoned. This branch is kept only for historic and didatic purposes. The master branch is where the current action is.
+
+
 ========================================================
 International Classification of Diseases - Web Services
 ========================================================
