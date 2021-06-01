@@ -1,6 +1,7 @@
 ========================================================
 International Classification of Diseases - Web Services
 ========================================================
+This repository has been archived. It is now read-only.
 
 The goal of this project is to load ICD-10 data into CouchDB to create multi-lingual, developer-friendly, RESTful Web services.
 
